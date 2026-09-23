@@ -60,9 +60,10 @@ function draw() {
 
   // constellation lines
   if (store.showConstLines) {
-    ctx.strokeStyle = 'rgba(100,180,255,0.4)'
-    ctx.lineWidth = 1.5
     for (const c of store.CONSTELLATIONS) {
+      const isActive = store.matchedConstellation?.name === c.name
+      ctx.strokeStyle = isActive ? 'rgba(255,200,100,0.85)' : 'rgba(100,180,255,0.4)'
+      ctx.lineWidth = isActive ? 2.5 : 1.5
       for (const [i, j] of c.lines) {
         const s1 = store.STARS[i], s2 = store.STARS[j]
         const [x1, y1] = store.projectStar(s1.ra, s1.dec, cx, cy, scale)
@@ -120,15 +121,18 @@ function draw() {
   ctx.closePath()
   ctx.stroke()
 
-  // constellation labels
+  // constellation labels（与侧栏星表、搜索结果共用同一份名字写法）
   if (store.showLabels) {
-    ctx.fillStyle = 'rgba(100,180,255,0.8)'
     ctx.font = `bold ${12 * store.zoom}px system-ui`
     for (const c of store.CONSTELLATIONS) {
+      const isActive = store.matchedConstellation?.name === c.name
+      ctx.fillStyle = isActive ? 'rgba(255,200,100,0.95)' : 'rgba(100,180,255,0.8)'
       const midStar = store.STARS[c.stars[0]]
       const [x, y] = store.projectStar(midStar.ra, midStar.dec, cx, cy, scale)
       if (x < -500) continue
-      ctx.fillText(c.nameCn, x - 20, y - 15 * store.zoom)
+      const label = store.constellationLabel(c)
+      const tw = ctx.measureText(label).width
+      ctx.fillText(label, x - tw / 2, y - 15 * store.zoom)
     }
   }
 

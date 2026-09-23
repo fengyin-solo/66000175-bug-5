@@ -6,14 +6,43 @@
 
       <!-- Search -->
       <div>
-        <input v-model="store.searchQuery" placeholder="搜索天体..." class="w-full bg-gray-800 rounded px-3 py-2 text-sm" />
-        <div v-if="store.filteredStars.length" class="mt-1">
-          <div v-for="s in store.filteredStars" :key="s.name"
-            @click="store.selectedStar = s"
-            class="bg-gray-800 p-2 rounded mt-1 cursor-pointer hover:bg-gray-700 text-sm">
-            {{ s.name }} <span class="text-gray-400">mag {{ s.mag }}</span>
+        <input v-model="store.searchQuery" placeholder="搜索星座或恒星（中文 / 拉丁名）..."
+          class="w-full bg-gray-800 rounded px-3 py-2 text-sm" />
+
+        <!-- 未输入：给出可输入写法的提示 -->
+        <p v-if="store.searchState === 'idle'" class="text-xs text-gray-500 mt-1">
+          支持中文名（如 猎户座）与拉丁名（如 Orion）；命中星座后按亮度逐级列出成员星。
+        </p>
+
+        <!-- 有输入但无命中：明确提示，不静默留空 -->
+        <p v-else-if="store.searchState === 'empty'" class="text-xs text-amber-400 mt-1">
+          未找到「{{ store.activeQuery }}」，请检查是否按错了键。可试试：猎户座 / Orion / Betelgeuse。
+        </p>
+
+        <template v-else>
+          <!-- 命中星座：成员按亮度排序，逐步显示 -->
+          <div v-if="store.matchedConstellation" class="mt-1 bg-gray-800 rounded p-2">
+            <div class="text-blue-300 text-sm font-bold">
+              {{ store.constellationLabel(store.matchedConstellation) }}
+            </div>
+            <div class="text-xs text-gray-500 mb-1">成员星 · 按亮度排序</div>
+            <div v-for="s in store.visibleMembers" :key="s.name"
+              @click="store.selectedStar = s"
+              class="member-item bg-gray-700/60 px-2 py-1.5 rounded mt-1 cursor-pointer hover:bg-gray-700 text-sm flex justify-between">
+              <span>{{ s.name }}</span>
+              <span class="text-gray-400">mag {{ s.mag }}</span>
+            </div>
           </div>
-        </div>
+
+          <!-- 命中恒星 -->
+          <div v-if="store.matchedStars.length" class="mt-1">
+            <div v-for="s in store.matchedStars" :key="s.name"
+              @click="store.selectedStar = s"
+              class="bg-gray-800 p-2 rounded mt-1 cursor-pointer hover:bg-gray-700 text-sm">
+              {{ s.name }} <span class="text-gray-400">mag {{ s.mag }}</span>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- Time Travel -->
@@ -62,8 +91,11 @@
       <!-- Constellation list -->
       <div class="text-xs">
         <h4 class="text-gray-400 mb-1">可见星座</h4>
-        <div v-for="c in store.CONSTELLATIONS" :key="c.name" class="py-1 text-gray-300">
-          {{ c.nameCn }} <span class="text-gray-500">({{ c.name }})</span>
+        <div v-for="c in store.CONSTELLATIONS" :key="c.name"
+          @click="store.selectConstellation(c)"
+          class="py-1 cursor-pointer hover:text-blue-300"
+          :class="store.matchedConstellation?.name === c.name ? 'text-amber-300' : 'text-gray-300'">
+          {{ store.constellationLabel(c) }}
         </div>
       </div>
 
@@ -88,3 +120,13 @@ const store = useSkyStore()
 const dateStr = ref(new Date().toISOString().slice(0, 16))
 function updateDate() { store.viewDate = new Date(dateStr.value) }
 </script>
+
+<style scoped>
+.member-item {
+  animation: member-in 0.25s ease-out;
+}
+@keyframes member-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
